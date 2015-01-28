@@ -1,0 +1,24 @@
+Default: &defaults
+  user: socket-games
+  password: socket-games
+  host: localhost
+  database: socket-games
+  connections: 10
+
+Development:
+  <<: *defaults
+
+Testing:
+  database: socket-games_test
+  <<: *defaults
+
+Staging:
+  database: socket-games_staging
+  connections: 100
+  <<: *defaults
+
+Production:
+  database: socket-games_production
+  connections: 100
+  host: localhost
+  <<: *defaults
