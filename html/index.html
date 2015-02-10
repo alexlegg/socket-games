@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <script src="https://cdn.socket.io/socket.io-1.2.1.js"></script>
+        <script src="static/js/jquery.min.js"></script>
+        <script src="static/js/jquery.cookie.js"></script>
+        <script src="static/js/jquery.ui.min.js"></script>
+        <script src="static/js/jquery.touch-punch.min.js"></script>
+        <script src="static/js/avalon.js"></script>
+        <link rel="stylesheet" href="static/css/bootstrap.min.css">
+        <link rel="stylesheet" href="statis/css/bootstrap-theme.min.css">
+        <script src="static/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="static/css/avalon.css">
+        <title>Avalon</title>
+    </head>
+
+    <body>
+    <div class="container">
+        <div id="disconnected">
+            You are disconnected. Maybe the server is down? Try refreshing.
+        </div>
+
+        <div id="signin">
+            <form class="form-signin" id="form-signin">
+                <h2 class="form-signin-heading">Please enter a name</h2>
+                <input type="text" id="playername" class="form-control" maxlength="16" placeholder="Name" autofocus>
+                <br />
+                <button id="btn_signin" class="btn btn-lg btn-primary btn-block">Go</button>
+                <br />
+            </form>
+        </div>
+
+        <div id="login">
+            <h2 style="text-align: center">Avalon</h2>
+            <p style="text-align:center">Are you trying to reconnect to a game?</p>
+            <ul class="list-group" id="reconnectlist"></ul>
+            <br />
+            <p style="text-align: center" id="reconnectmessage"></p>
+            <button class="btn btn-lg btn-danger btn-block" id="btn_noreconnect">No, take me to the lobby</button>
+        </div>
+
+        <div id="lobby">
+            <h2 style="text-align: center">Avalon</h2>
+            <ul class="list-group" id="gamelist"></ul>
+            <button class="btn btn-lg btn-primary btn-block" id="btn_newgame">New Game</button>
+            <br />
+            <button class="btn btn-lg btn-warning btn-block" id="btn_changename">Change Name</button>
+            <br />
+            <button class="btn btn-lg btn-info btn-block" id="btn_reconnect">Reconnect to Previous Game</button>
+        </div>
+
+        <div id="pregame">
+            <h2 style="text-align: center">Avalon</h2>
+            <ul class="list-group" id="gameinfo"></ul>
+            <button class="btn btn-lg btn-primary btn-block" id="btn_ready">Start Game</button>
+            <button class="btn btn-lg btn-danger btn-block" id="btn_leavelobby">Leave Game</button>
+
+            <div class="panel panel-default" id="gameoptions">
+                <div class="panel-heading">
+                    <div class="panel-title">Options</div>
+                </div>
+                <ul class="list-group options-list">
+                    <li class="list-group-item"><input type="checkbox" id="opt_mordred" value="mordred" /> Mordred</li>
+                    <li class="list-group-item"><input type="checkbox" id="opt_oberon" value="oberon" /> Oberon</li>
+                    <li class="list-group-item"><input type="checkbox" id="opt_showfails" value="showfails" /> Show number of fails</li>
+                </ul>
+            </div>
+
+            <button class="btn btn-lg btn-primary btn-block" id="btn_start_game">Start Game</button>
+
+            <p id="waitforhost">
+                Please wait for the host to begin the game.
+            </p>
+
+            <br />
+        </div>
+
+        <div id="game">
+            <div id="missioninfo">
+                <h2>Avalon</h2>
+
+                <span id="mission0"></span>
+                <span id="mission1"></span>
+                <span id="mission2"></span>
+                <span id="mission3"></span>
+                <span id="mission4"></span>
+                <p id="missionmessage"></p>
+            </div>
+
+            <div class="panel panel-default panel-popup" id="vote">
+                <!--<div class="panel-heading">
+                    <div class="panel-title">Vote</div>
+                </div>-->
+                <br />
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-approve">
+                        <input type="radio" name="vote" value="approve"><span class="btnicon"><img class="icon" src="tick.png" /></span> Approve
+                    </label>
+                    <label class="btn btn-reject">
+                        <input type="radio" name="vote" value="reject">Reject <span class="btnicon"><img class="icon" src="cross-wh.png" /></span>
+                    </label>
+                </div>
+                <br />
+                <br />
+                <button class="btn btn-primary btn-block btn-panel" id="btn_submitvote">Submit</button>
+                <br />
+            </div>
+
+            <div class="panel panel-default panel-popup" id="quest">
+                <!--<div class="panel-heading">
+                    <div class="panel-title">Quest</div>
+                </div>-->
+                <br />
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-success">
+                        <input type="radio" name="quest" value="success"><span class="btnicon"><img class="icon" src="tick-wh.png" /></span> Success
+                    </label>
+                    <label class="btn btn-danger">
+                        <input type="radio" name="quest" value="fail">Fail <span class="btnicon"><img class="icon" src="cross-wh.png" /></span>
+                    </label>
+                </div>
+                <br />
+                <br />
+                <button class="btn btn-primary btn-block btn-panel" id="btn_submitquest">Submit</button>
+                <br />
+            </div>
+
+            <form id="form-select-mission">
+                <ul class="list-group" id="players"></ul>
+                
+                <div id="leaderinfo">You are the leader, select players from the list then press this button.</div>
+                <button class="btn btn-lg btn-primary btn-block" id="btn_select_mission">Propose Quest</button>
+                <button class="btn btn-lg btn-primary btn-block" id="btn_assassinate">Assassinate</button>
+            </form>
+
+            <button class="btn btn-lg btn-warning btn-block" id="btn_showinfo">Show Hidden Info</button>
+            <ul class="list-group" id="hiddeninfo"></ul>
+
+            <br />
+            <button class="btn btn-lg btn-danger btn-block" id="btn_quit">Quit Game</button>
+
+            <br />
+            <div class="panel panel-default panel-popup" id="user_reconnecting">
+                Someone is reconnecting to the game.<br />
+                They claim to be <span id="user_reconnecting_name"></span>.
+                <br />
+                <br />
+                <div class="btn-group" data-toggle="buttons">
+                    <label class="btn btn-success">
+                        <input type="radio" name="reconnectvote" value="allow"><span class="btnicon"><img class="icon" src="tick-wh.png" /></span> Allow
+                    </label>
+                    <label class="btn btn-danger">
+                        <input type="radio" name="reconnectvote" value="deny">Deny <span class="btnicon"><img class="icon" src="cross-wh.png" /></span>
+                    </label>
+                </div>
+                <br />
+                <br />
+                <button class="btn btn-primary btn-block btn-panel" id="btn_submitreconnectvote">Submit</button>
+                <br />
+            </div>
+
+            <br />
+        </div>
+    </div>
+    </body>
+</html>
