@@ -19,6 +19,7 @@ library
                      Settings
                      Settings.StaticFiles
                      Settings.Development
+                     AvalonServer
                      Handler.Home
 
     if flag(dev) || flag(library-only)
@@ -68,6 +69,11 @@ library
                  , monad-logger                  >= 0.3        && < 0.4
                  , fast-logger                   >= 2.2        && < 2.3
                  , wai-logger                    >= 2.2        && < 2.3
+                 , transformers
+                 , mtl
+                 , engine-io
+                 , engine-io-yesod
+                 , socket-io
 
     -- see https://github.com/yesodweb/yesod/issues/814
     if !os(windows)

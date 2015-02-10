@@ -30,6 +30,7 @@ data App = App
     , httpManager :: Manager
     , persistConfig :: Settings.PersistConf
     , appLogger :: Logger
+    , socketIoHandler :: HandlerT App IO ()
     }
 
 instance HasHttpManager App where
@@ -57,7 +58,7 @@ instance Yesod App where
     -- Store session data on the client in encrypted cookies,
     -- default session idle timeout is 120 minutes
     makeSessionBackend _ = fmap Just $ defaultClientSessionBackend
-        120    -- timeout in minutes
+        (365 * 24 * 60)    -- timeout in minutes
         "config/client_session_key.aes"
 
     defaultLayout widget = do
@@ -112,6 +113,10 @@ instance Yesod App where
         development || level == LevelWarn || level == LevelError
 
     makeLogger = return . appLogger
+
+    -- do not redirect /socket.io/?bla=blub to /socket.io?bla=blub
+    cleanPath _ ["socket.io",""] = Right ["socket.io"]
+    cleanPath _ p = Right p
 
 -- How to run database actions.
 instance YesodPersist App where

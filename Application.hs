@@ -21,6 +21,9 @@ import System.Log.FastLogger (newStdoutLoggerSet, defaultBufSize)
 import Network.Wai.Logger (clockDateCacher)
 import Data.Default (def)
 import Yesod.Core.Types (loggerSet, Logger (Logger))
+import qualified Network.SocketIO as SocketIO
+import qualified Network.EngineIO.Yesod as EIOYesod
+import AvalonServer
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -68,16 +71,18 @@ makeFoundation conf = do
     (getter, _) <- clockDateCacher
 
     let logger = Yesod.Core.Types.Logger loggerSet' getter
-        foundation = App
+        foundation sio = App
             { settings = conf
             , getStatic = s
             , connPool = p
             , httpManager = manager
             , persistConfig = dbconf
             , appLogger = logger
+            , socketIoHandler = sio
             }
 
-    return foundation
+    app <- foundation <$> SocketIO.initialize EIOYesod.yesodAPI avalonServer
+    return app
 
 -- for yesod devel
 getApplicationDev :: IO (Int, Application)

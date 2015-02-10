@@ -12,15 +12,9 @@ import Yesod.Form.Bootstrap3
 -- The majority of the code you will write in Yesod lives in these handler
 -- functions. You can spread them across multiple files if you are so
 -- inclined, or create a single monolithic file.
-getHomeR :: Handler Html
+getHomeR :: Handler ()
 getHomeR = do
-    (formWidget, formEnctype) <- generateFormPost sampleForm
-    let submission = Nothing :: Maybe (FileInfo, Text)
-        handlerName = "getHomeR" :: Text
-    defaultLayout $ do
-        aDomId <- newIdent
-        setTitle "Welcome To Yesod!"
-        $(widgetFile "homepage")
+    sendFile "text/html" "html/index.html"
 
 postHomeR :: Handler Html
 postHomeR = do
@@ -39,3 +33,8 @@ sampleForm :: Form (FileInfo, Text)
 sampleForm = renderBootstrap3 BootstrapBasicForm $ (,)
     <$> fileAFormReq "Choose a file"
     <*> areq textField (withSmallInput "What's on the file?") Nothing
+
+handleSocketIOR :: Handler ()
+handleSocketIOR = do
+    site <- getYesod
+    socketIoHandler site
