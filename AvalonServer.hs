@@ -5,7 +5,6 @@ module AvalonServer
 
 import Prelude
 import Control.Applicative
-import Control.Monad.IO.Class
 import Control.Monad.Trans.Reader
 import Control.Monad.State.Strict (StateT, mzero)
 import qualified Data.Aeson as Aeson
@@ -19,45 +18,79 @@ data BThing = BThing !Int
 instance Aeson.ToJSON BThing where
     toJSON (BThing x) = Aeson.object [ "bThing" .= x ]
 
-data Login = Login {
-      name    :: Text.Text
-    }
+data Login = Login Text.Text
 
 instance Aeson.FromJSON Login where
     parseJSON (Aeson.Object x)  = Login <$> x .: "name"
     parseJSON _                 = mzero
 
+data GameList = GameList [LobbyGame]
+
+instance Aeson.ToJSON GameList where
+    toJSON (GameList games) = Aeson.object [ "games" .= games ]
+
+data LobbyGame = LobbyGame String String Int
+
+instance Aeson.ToJSON LobbyGame where
+    toJSON (LobbyGame gid nm p)   = Aeson.object [
+          "id"          .= gid
+        , "name"        .= nm
+        , "num_players" .= p
+        ]
+
+toLobbyGame :: Game -> LobbyGame
+toLobbyGame g = LobbyGame "" "" (length (gamePlayers g))
+
 toPlayerKey :: Text.Text -> Maybe (Key Player)
 toPlayerKey (readMayObjectId -> Just oid)   = Just $ oidToKey oid
 toPlayerKey _                               = Nothing
 
+sendGameList :: ReaderT SocketIO.Socket (HandlerT App IO) ()
 sendGameList = do
-    games <- lift $ lift $ runDB $ selectList ([] :: [Filter Game]) []
+    games <- lift $ runDB $ selectList ([] :: [Filter Game]) []
+    SocketIO.emit "gamelist" (GameList (map (toLobbyGame . entityVal) games))
     return ()
+
+getSocketPlayer :: ReaderT SocketIO.Socket (HandlerT App IO) (Maybe (Entity Player))
+getSocketPlayer = do
+    socket <- ask
+    lift $ runDB $ selectFirst [PlayerSocket ==. (SocketIO.socketId socket)] []
 
 avalonServer :: StateT (SocketIO.RoutingTable (HandlerT App IO)) (ReaderT SocketIO.Socket (HandlerT App IO)) ()
 avalonServer = do
     playerId <- lookupSession "player_id"
 
-    case playerId of
+    case maybe Nothing toPlayerKey playerId of
         Nothing     -> SocketIO.emit "bad_login" (empty :: String)
         (Just pid)  -> do
-            let (Just id) = toPlayerKey pid
-            p <- lift $ lift $ runDB $ get id
+            p <- lift $ lift $ runDB $ get pid
             case p of
-                (Just player)   -> do
-                    sendGameList
+                (Just _)   -> do
+                    lift $ sendGameList
                 Nothing         -> do
                     SocketIO.emit "bad_login" (empty :: String)
-
----    game <- lift $ lift $ runDB $ insert $ Game 22
----    player <- lift $ lift $ runDB $ insert $ Player "AAAAA" "sdfsdf" game
 
     SocketIO.on "blahblah" $ do
         SocketIO.broadcast "blah blah" (BThing 4444)
 
-    SocketIO.on "login" $ do
+    SocketIO.on "login" $ \(Login name) -> do
         socket <- ask
-        liftIO $ putStrLn (show (SocketIO.socketId socket))
-        liftIO $ putStrLn "login recvd"
-        SocketIO.emit "test response" (BThing 33)
+        p <- lift $ runDB $ selectFirst [PlayerName ==. name] []
+        case p of
+            Nothing     -> do
+                _ <- lift $ runDB $ insert (Player name (SocketIO.socketId socket) Nothing)
+                return ()
+            Just _ -> do
+                return ()
+
+        sendGameList
+
+    SocketIO.on "newgame" $ do
+        liftIO $ putStrLn "newgame"
+        p <- getSocketPlayer
+        case p of
+            Nothing     -> return ()
+            Just player -> do
+                _ <- lift $ runDB $ insert (Game GameLobby [entityVal player])
+                sendGameList
+

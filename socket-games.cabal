@@ -16,6 +16,7 @@ library
                      Foundation
                      Import
                      Model
+                     PersistTypes
                      Settings
                      Settings.StaticFiles
                      Settings.Development

@@ -3,6 +3,7 @@ User
     password Text Maybe
     UniqueUser ident
     deriving Typeable
+
 Email
     email Text
     user UserId Maybe
@@ -11,10 +12,12 @@ Email
 
 Player
     name        Text
-    socket      Text
-    currentGame GameId
+    socket      ByteString
+    currentGame GameId Maybe
+    deriving (Show)
 
 Game
-    state       Int
+    state       GameState
+    players     [Player]
 
  -- By default this file is used in Model.hs (which is imported by Foundation.hs)
