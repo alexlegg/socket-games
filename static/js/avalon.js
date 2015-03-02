@@ -88,6 +88,7 @@
     });
     socket.on('gamelist', function(games) {
       console.log("game list recvd");
+      games = games.games;
       var g, _i, _len, _results;
       if ($("#pregame").is(":visible")) {
         return;

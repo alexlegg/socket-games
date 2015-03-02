@@ -29,7 +29,7 @@ data GameList = GameList [LobbyGame]
 instance Aeson.ToJSON GameList where
     toJSON (GameList games) = Aeson.object [ "games" .= games ]
 
-data LobbyGame = LobbyGame String String Int
+data LobbyGame = LobbyGame String Text.Text Int
 
 instance Aeson.ToJSON LobbyGame where
     toJSON (LobbyGame gid nm p)   = Aeson.object [
@@ -38,8 +38,11 @@ instance Aeson.ToJSON LobbyGame where
         , "num_players" .= p
         ]
 
-toLobbyGame :: Game -> LobbyGame
-toLobbyGame g = LobbyGame "" "" (length (gamePlayers g))
+toLobbyGame :: Entity Game -> LobbyGame
+toLobbyGame g = LobbyGame (show (keyToOid (entityKey g))) gname (length (gamePlayers v))
+    where
+        v       = entityVal g
+        gname   = Text.intercalate ", " (map playerName (gamePlayers v))
 
 toPlayerKey :: Text.Text -> Maybe (Key Player)
 toPlayerKey (readMayObjectId -> Just oid)   = Just $ oidToKey oid
@@ -47,8 +50,11 @@ toPlayerKey _                               = Nothing
 
 sendGameList :: ReaderT SocketIO.Socket (HandlerT App IO) ()
 sendGameList = do
+    liftIO $ putStrLn "send game list1"
     games <- lift $ runDB $ selectList ([] :: [Filter Game]) []
-    SocketIO.emit "gamelist" (GameList (map (toLobbyGame . entityVal) games))
+    liftIO $ putStrLn "send game list2"
+    liftIO $ putStrLn (show games)
+    SocketIO.emit "gamelist" (GameList (map toLobbyGame games))
     return ()
 
 getSocketPlayer :: ReaderT SocketIO.Socket (HandlerT App IO) (Maybe (Entity Player))
@@ -80,7 +86,8 @@ avalonServer = do
             Nothing     -> do
                 _ <- lift $ runDB $ insert (Player name (SocketIO.socketId socket) Nothing)
                 return ()
-            Just _ -> do
+            Just player -> do
+                _ <- lift $ runDB $ update (entityKey player) [PlayerSocket =. SocketIO.socketId socket]
                 return ()
 
         sendGameList
@@ -91,6 +98,7 @@ avalonServer = do
         case p of
             Nothing     -> return ()
             Just player -> do
+                liftIO $ putStrLn "player"
                 _ <- lift $ runDB $ insert (Game GameLobby [entityVal player])
                 sendGameList
 
