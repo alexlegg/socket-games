@@ -38,6 +38,12 @@ instance Aeson.ToJSON LobbyGame where
         , "num_players" .= p
         ]
 
+data JoinGame = JoinGame String
+
+instance Aeson.FromJSON JoinGame where
+    parseJSON (Aeson.Object x)  = JoinGame <$> x .: "game_id"
+    parseJSON _                 = mzero
+
 toLobbyGame :: Entity Game -> LobbyGame
 toLobbyGame g = LobbyGame (show (keyToOid (entityKey g))) gname (length (gamePlayers v))
     where
@@ -50,10 +56,7 @@ toPlayerKey _                               = Nothing
 
 sendGameList :: ReaderT SocketIO.Socket (HandlerT App IO) ()
 sendGameList = do
-    liftIO $ putStrLn "send game list1"
     games <- lift $ runDB $ selectList ([] :: [Filter Game]) []
-    liftIO $ putStrLn "send game list2"
-    liftIO $ putStrLn (show games)
     SocketIO.emit "gamelist" (GameList (map toLobbyGame games))
     return ()
 
@@ -101,4 +104,20 @@ avalonServer = do
                 liftIO $ putStrLn "player"
                 _ <- lift $ runDB $ insert (Game GameLobby [entityVal player])
                 sendGameList
+
+    SocketIO.on "joingame" $ \(JoinGame gameId) -> do
+        p <- getSocketPlayer
+        case p of
+            Nothing     -> return ()
+            Just player -> do
+                let gameKey = oidToKey (read gameId) :: Key Game
+                g <- lift $ runDB $ get gameKey
+                case g of
+                    Nothing     -> return ()
+                    Just game   -> do
+                        _ <- lift $ runDB $ update gameKey [GamePlayers `push` (entityVal player)]
+                        return ()
+                return ()
+                
+        liftIO $ putStrLn (show gameId)
 
